@@ -11,8 +11,8 @@
 - v23054.config为23.05.4版本，不再使用
 - v24104.config为24.10.4版本，不再使用
 - v24106.config为24.10.6版本，包含插件同.config配置，在使用版本--下载:[2026.07.21-2347](https://github.com/whiskyrye/ImmortalWrt-Actions/releases/tag/2026.07.21-2347)
-- .config为25.12.1版本，插件详见当前.config配置，下载：[2026.07.23-1910](https://github.com/whiskyrye/ImmortalWrt-Actions/releases/tag/2026.07.23-1910)
-- m28k为m28k用的25.12.1版本，包含插件同.config配置，下载：[2026.07.26-1813](https://github.com/whiskyrye/ImmortalWrt-Actions/releases/tag/2026.07.26-1813)
+- .config为25.12.1版本，插件详见当前.config配置，下载：[2026.07.26-2117](https://github.com/whiskyrye/ImmortalWrt-Actions/releases/tag/2026.07.26-2117)
+- m28k.config为m28k用的25.12.1版本，包含插件同.config配置，下载：[2026.07.26-1813](https://github.com/whiskyrye/ImmortalWrt-Actions/releases/tag/2026.07.26-1813)
 
 ## 当前.config 配置
 |插件|功能|
