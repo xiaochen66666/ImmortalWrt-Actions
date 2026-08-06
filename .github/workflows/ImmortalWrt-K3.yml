@@ -1,5 +1,5 @@
 # 代码
-name: ImmortalWrt-m28k Builder
+name: ImmortalWrt-K3 Builder
 
 on:
   repository_dispatch:
@@ -7,7 +7,7 @@ on:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: v25.12.1
+  REPO_BRANCH: openwrt-23.05
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -75,7 +75,7 @@ jobs:
       run: |
         cd immortalwrt && ./scripts/feeds install -a
         rm -rf feeds/packages/lang/golang
-        git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+        git clone https://github.com/sbwml/packages_lang_golang -b 23.x feeds/packages/lang/golang
        
     - name: Load custom configuration
       run: |
