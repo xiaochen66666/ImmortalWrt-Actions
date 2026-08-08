@@ -17,7 +17,7 @@ concurrency:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: openwrt-23.05
+  REPO_BRANCH: v23.05.7
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -154,7 +154,7 @@ jobs:
         KERNEL_VER=$(cat *.manifest | grep "^kernel" | head -n 1 | cut -d- -f2 | tr -d ' ')
         echo "KERNEL_VER=$KERNEL_VER" >> $GITHUB_ENV
         shopt -s extglob
-        rm -rf !(config.buildinfo|*.manifest|*phicomm_k3-squashfs.trx)
+        rm -rf !(.buildinfo|*.manifest|*phicomm_k3-squashfs.trx)
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
     - name: 上传固件到 Artifacts
@@ -179,7 +179,7 @@ jobs:
         echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
         
         cat <<EOF > release.txt
-        🚀 **ImmortalWrt bcm53xx 自动编译版**
+        🚀 **ImmortalWrt K3 自动编译版**
         
         ### 📦 固件基础信息
         - 💻 **编译平台**: GitHub Actions
