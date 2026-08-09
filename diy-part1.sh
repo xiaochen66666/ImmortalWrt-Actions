@@ -24,4 +24,4 @@ wget -nv https://github.com/JE668/Phicomm-k3-Wireless-Firmware/raw/master/brcmfm
 echo '=========Replace k3 wireless firmware OK!========='
 
 #Compile K3 Only
-sed -i 's|^TARGET_|# TARGET_|g; s|# TARGET_DEVICES += phicomm_k3|TARGET_DEVICES += phicomm_k3|' target/linux/bcm53xx/image/Makefile
+#sed -i 's|^TARGET_|# TARGET_|g; s|# TARGET_DEVICES += phicomm_k3|TARGET_DEVICES += phicomm_k3|' target/linux/bcm53xx/image/Makefile
