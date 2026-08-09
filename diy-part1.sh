@@ -8,6 +8,12 @@ echo 'src-git whiskyrye https://github.com/whiskyrye/ImmortalWrt-Packages.git;ma
 
 echo '=========Add whiskyrye feed OK!========='
 
+echo '添加 luci-app-timecontrol 插件 (从 GitHub 克隆)'
+# 注意：需要确认正确的仓库地址
+rm -rf package/luci-app-timecontrol
+git clone https://github.com/sirpdboy/luci-app-timecontrol.git package/luci-app-timecontrol
+echo '=========Add timecontrol plug OK!========='
+
 echo '添加 K3 屏幕插件 (Luci 界面)'
 rm -rf package/luci-app-k3screenctrl
 git clone https://github.com/JE668/luci-app-k3screenctrl.git package/luci-app-k3screenctrl
