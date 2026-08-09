@@ -10,6 +10,12 @@ on:
   repository_dispatch:
     types: [Source Code Update]
   workflow_dispatch:
+    inputs:
+      repo_branch:
+        description: '选择或输入要编译的 ImmortalWrt 版本 (例如: v24.10.6, v23.05.7, master)'
+        required: true
+        default: 'v24.10.6'
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}
@@ -17,7 +23,8 @@ concurrency:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: v24.10.6
+  # REPO_BRANCH 将从 inputs 动态获取，此处保留作为备用
+  REPO_BRANCH: ${{ github.event.inputs.repo_branch || 'v24.10.6' }}
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -81,7 +88,8 @@ jobs:
     - name: 克隆 OpenWrt 源代码
       working-directory: ./
       run: |
-        git clone --depth=20 $REPO_URL -b $REPO_BRANCH openwrt
+        echo "正在克隆版本: ${{ env.REPO_BRANCH }}"
+        git clone --depth=20 $REPO_URL -b ${{ env.REPO_BRANCH }} openwrt
 
     - name: 加载自定义 feeds 配置 (diy-part1.sh)
       run: |
@@ -113,8 +121,9 @@ jobs:
           openwrt/staging_dir/toolchain-*
           openwrt/build_dir/host*
           openwrt/build_dir/toolchain-*
-        key: ${{ runner.os }}-toolchain-${{ hashFiles('openwrt/include/**', 'openwrt/tools/**', 'openwrt/toolchain/**') }}
+        key: ${{ runner.os }}-toolchain-${{ env.REPO_BRANCH }}-${{ hashFiles('openwrt/include/**', 'openwrt/tools/**', 'openwrt/toolchain/**') }}
         restore-keys: |
+          ${{ runner.os }}-toolchain-${{ env.REPO_BRANCH }}-
           ${{ runner.os }}-toolchain-
 
     - name: 修复被缓存的底层构建时间戳
@@ -161,7 +170,7 @@ jobs:
       if: env.UPLOAD_FIRMWARE == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: OpenWrt_firmware_${{ env.REPO_BRANCH }}${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
     - name: 生成发布版本标签与详细日志
@@ -186,6 +195,7 @@ jobs:
         - 🖥️ **适用架构**: bcm53xx
         - 🐧 **内核版本**: ${KERNEL_VER}
         - 📅 **编译时间**: ${BUILD_TIME}
+        - 📌 **源码版本**: ${{ env.REPO_BRANCH }}
         
         ### 🧊 主源码最后更新快照
         - 👤 **提交作者**: ${COMMIT_AUTHOR}
