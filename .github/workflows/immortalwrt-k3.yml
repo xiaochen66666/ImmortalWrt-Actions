@@ -10,12 +10,6 @@ on:
   repository_dispatch:
     types: [Source Code Update]
   workflow_dispatch:
-    inputs:
-      repo_branch:
-        description: '选择或输入要编译的 ImmortalWrt 版本 (例如: v24.10.6, v23.05.7, master)'
-        required: true
-        default: 'v24.10.6'
-        type: string
 
 concurrency:
   group: ${{ github.workflow }}
@@ -23,7 +17,7 @@ concurrency:
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: ${{ github.event.inputs.repo_branch || 'v24.10.6' }}
+  REPO_BRANCH: v24.10.6
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -45,7 +39,6 @@ jobs:
         echo "=============================================================================="
         df -hT
         echo "=============================================================================="
-
     - name: 极限清理磁盘空间
       uses: jlumbroso/free-disk-space@main
       with:
@@ -65,14 +58,12 @@ jobs:
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
         sudo swapon /swapfile
-
     - name: 检查清理后的磁盘空间
       run: |
         echo "清理并挂载 Swap 完成"
         echo "=============================================================================="
         df -hT
         echo "=============================================================================="
-
     - name: 检出仓库代码
       uses: actions/checkout@v4
 
@@ -83,58 +74,29 @@ jobs:
         curl -fsSL https://build-scripts.immortalwrt.org/init_build_environment.sh | sudo -E bash
         sudo timedatectl set-timezone "$TZ"
         sudo chown $USER:$GROUPS $GITHUB_WORKSPACE
-
     - name: 克隆 OpenWrt 源代码
       working-directory: ./
       run: |
-        echo "正在克隆版本: ${{ env.REPO_BRANCH }}"
-        git clone --depth=20 $REPO_URL -b ${{ env.REPO_BRANCH }} openwrt
-
+        git clone --depth=20 $REPO_URL -b $REPO_BRANCH openwrt
     - name: 加载自定义 feeds 配置 (diy-part1.sh)
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-        if [ -e $DIY_P1_SH ]; then
-          chmod +x $DIY_P1_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/$DIY_P1_SH
-        else
-          echo "警告: $DIY_P1_SH 不存在，跳过"
-        fi
-
+        chmod +x $DIY_P1_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P1_SH
     - name: 更新并安装 feeds
       working-directory: ./openwrt
       run: |
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-
     - name: 加载自定义配置 (diy-part2.sh)
       run: |
         [ -e files ] && mv files openwrt/files
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        if [ -e $DIY_P2_SH ]; then
-          chmod +x $DIY_P2_SH
-          cd openwrt
-          $GITHUB_WORKSPACE/$DIY_P2_SH
-        else
-          echo "警告: $DIY_P2_SH 不存在，跳过"
-        fi
-
-    # ========== 修改开始：方案一 - 清理缓存并强制重建 ==========
-    - name: 清理旧的 toolchain 缓存
-      run: |
-        echo "开始清理旧的 toolchain 构建目录..."
+        chmod +x $DIY_P2_SH
         cd openwrt
-        # 清理 toolchain 构建目录
-        rm -rf build_dir/toolchain-*
-        rm -rf staging_dir/toolchain-*
-        # 清理 binutils 相关文件
-        rm -rf dl/binutils-*
-        rm -rf build_dir/host/binutils-*
-        # 清理其他可能冲突的缓存
-        rm -rf tmp
-        echo "清理完成，将重新构建 toolchain"
-
-    - name: 缓存核心工具链 (Toolchain) - 强制更新缓存
+        $GITHUB_WORKSPACE/$DIY_P2_SH
+    - name: 缓存核心工具链 (Toolchain)
       id: cache-toolchain
       uses: actions/cache@v4
       with:
@@ -143,19 +105,15 @@ jobs:
           openwrt/staging_dir/toolchain-*
           openwrt/build_dir/host*
           openwrt/build_dir/toolchain-*
-        # 使用 run_number 确保每次都是新的缓存
-        key: ${{ runner.os }}-toolchain-${{ env.REPO_BRANCH }}-${{ github.run_number }}
+        key: ${{ runner.os }}-toolchain-${{ hashFiles('openwrt/include/**', 'openwrt/tools/**', 'openwrt/toolchain/**') }}
         restore-keys: |
-          ${{ runner.os }}-toolchain-${{ env.REPO_BRANCH }}-
           ${{ runner.os }}-toolchain-
-
     - name: 修复被缓存的底层构建时间戳
       if: steps.cache-toolchain.outputs.cache-hit == 'true'
       run: |
         echo "正在施展时间戳欺骗魔法，骗过 OpenWrt 的 Make 系统..."
-        find openwrt/staging_dir/ -type f -exec touch {} + 2>/dev/null || true
-        find openwrt/build_dir/ -type f -exec touch {} + 2>/dev/null || true
-
+        find openwrt/staging_dir/ -type f -exec touch {} +
+        find openwrt/build_dir/ -type f -exec touch {} +
     - name: 下载编译所需的软件包
       id: package
       run: |
@@ -164,28 +122,15 @@ jobs:
         make download -j16 || make download -j1 V=s
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
-    # ========== 修改结束 ==========
-
-    # ========== 修改：分段编译，先编译 toolchain ==========
     - name: 编译 OpenWrt 固件
       id: compile
       run: |
         cd openwrt
-        
-        echo "========== 阶段1: 编译 Toolchain =========="
-        # 先编译 toolchain，使用较低的并行度确保稳定
-        make toolchain/compile -j$(nproc) V=s || make toolchain/compile -j1 V=s
-        
-        echo "========== 阶段2: 编译固件 =========="
-        # 然后编译完整固件
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 V=s
-        
-        # 提取设备名称
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-
     - name: 检查编译后的空间使用情况
       run: df -hT
 
@@ -196,15 +141,14 @@ jobs:
         rm -rf packages
         KERNEL_VER=$(cat *.manifest | grep "^kernel" | head -n 1 | cut -d- -f2 | tr -d ' ')
         echo "KERNEL_VER=$KERNEL_VER" >> $GITHUB_ENV
-        # 更安全的文件清理方式
-        find . -type f ! -name "*.buildinfo" ! -name "*.manifest" ! -name "*phicomm_k3-squashfs.trx" -delete
+        shopt -s extglob
+        rm -rf !(*.buildinfo|*.manifest|*phicomm_k3-squashfs.trx)
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
     - name: 上传固件到 Artifacts
       if: env.UPLOAD_FIRMWARE == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: OpenWrt_firmware_${{ env.REPO_BRANCH }}${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
     - name: 生成发布版本标签与详细日志
@@ -229,7 +173,6 @@ jobs:
         - 🖥️ **适用架构**: bcm53xx
         - 🐧 **内核版本**: ${KERNEL_VER}
         - 📅 **编译时间**: ${BUILD_TIME}
-        - 📌 **源码版本**: ${{ env.REPO_BRANCH }}
         
         ### 🧊 主源码最后更新快照
         - 👤 **提交作者**: ${COMMIT_AUTHOR}
@@ -248,7 +191,6 @@ jobs:
         ---
         🤖 *此固件由 GitHub Actions 全自动拉取最新源码构建*
         EOF
-
     - name: 发布固件到 Releases
       if: env.UPLOAD_RELEASE == 'true'
       env:
@@ -272,7 +214,6 @@ jobs:
         else
           echo "没有需要清理的旧记录。"
         fi
-
     - name: 清理旧的 Releases 版本
       if: env.UPLOAD_RELEASE == 'true'
       env:
