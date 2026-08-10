@@ -1,10 +1,10 @@
 # Add a feed source
-echo '添加 whiskyrye 软件源'
-echo 'src-git whiskyrye https://github.com/whiskyrye/ImmortalWrt-Packages.git;main' >> feeds.conf.default
+# echo '添加 whiskyrye 软件源'
+# echo 'src-git whiskyrye https://github.com/whiskyrye/ImmortalWrt-Packages.git;main' >> feeds.conf.default
 # 或者使用其他源
 # echo 'src-git kenzo https://github.com/kenzok8/openwrt-packages.git' >> feeds.conf.default
 # echo 'src-git small https://github.com/kenzok8/small.git' >> feeds.conf.default
-echo '=========Add whiskyrye feed OK!========='
+# echo '=========Add whiskyrye feed OK!========='
 
 
 echo '添加 K3 屏幕插件 (Luci 界面)'
