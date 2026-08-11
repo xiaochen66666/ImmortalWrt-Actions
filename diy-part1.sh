@@ -24,4 +24,4 @@ echo '=========Replace k3screen drive plug OK!========='
 # echo '=========Replace k3 wireless firmware OK!========='
 
 # Compile K3 Only
-# sed -i 's|^TARGET_|# TARGET_|g; s|# TARGET_DEVICES += phicomm_k3|TARGET_DEVICES += phicomm_k3|' target/linux/bcm53xx/image/Makefile
+sed -i 's|^TARGET_|# TARGET_|g; s|# TARGET_DEVICES += phicomm_k3|TARGET_DEVICES += phicomm_k3|' target/linux/bcm53xx/image/Makefile
